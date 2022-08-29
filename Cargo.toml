@@ -12,7 +12,7 @@ readme = "Readme.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-redis="0.17"
+redis_cluster_async = {  git = "https://github.com/zhiyong0804/redis-cluster-async.git" }
 deadpool="0.6"
 async-trait = "0.1"
 rand="0.7"

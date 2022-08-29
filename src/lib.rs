@@ -48,7 +48,7 @@ use std::{
 use async_trait::async_trait;
 use deadpool::managed::RecycleError;
 use rand::Rng;
-use redis::AsyncCommands;
+use redis_cluster_async::{redis::AsyncCommands, redis};
 
 pub use deadpool;
 
