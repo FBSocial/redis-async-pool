@@ -48,7 +48,7 @@ use std::{
 use async_trait::async_trait;
 use deadpool::managed::RecycleError;
 use rand::Rng;
-use redis_cluster_async::{redis::AsyncCommands, redis};
+use redis_cluster_async::{redis::AsyncCommands, redis, Client as ClusterClient };
 
 pub use deadpool;
 
@@ -79,7 +79,7 @@ pub enum Ttl {
 /// Manages creation and destruction of redis connections.
 ///
 pub struct RedisConnectionManager {
-    client: redis::Client,
+    client: ClusterClient,
     check_on_recycle: bool,
     connection_ttl: Option<Ttl>,
 }
@@ -92,7 +92,7 @@ impl RedisConnectionManager {
     /// is created.
     ///
     /// If `connection_ttl` is set, the connection will be recreated after the given duration.
-    pub fn new(client: redis::Client, check_on_recycle: bool, connection_ttl: Option<Ttl>) -> Self {
+    pub fn new(client: ClusterClient, check_on_recycle: bool, connection_ttl: Option<Ttl>) -> Self {
         Self {
             client,
             check_on_recycle,
@@ -105,7 +105,7 @@ impl RedisConnectionManager {
 impl deadpool::managed::Manager<RedisConnection, redis::RedisError> for RedisConnectionManager {
     async fn create(&self) -> Result<RedisConnection, redis::RedisError> {
         Ok(RedisConnection {
-            actual: self.client.get_async_connection().await?,
+            actual: self.client.get_connection().await?,
             expires_at: self
                 .connection_ttl
                 .as_ref()
@@ -150,7 +150,7 @@ impl deadpool::managed::Manager<RedisConnection, redis::RedisError> for RedisCon
 /// It is Deref & DerefMut to `redis::aio::Connection` so it can be used
 /// like a regular Redis asynchronous connection.
 pub struct RedisConnection {
-    actual: redis::aio::Connection,
+    actual: redis_cluster_async::Connection,
     expires_at: Option<Instant>,
 }
 
@@ -158,7 +158,7 @@ pub struct RedisConnection {
 // redis::aio::Connection
 
 impl Deref for RedisConnection {
-    type Target = redis::aio::Connection;
+    type Target = redis_cluster_async::Connection;
     fn deref(&self) -> &Self::Target {
         &self.actual
     }
@@ -170,14 +170,14 @@ impl DerefMut for RedisConnection {
     }
 }
 
-impl AsMut<redis::aio::Connection> for RedisConnection {
-    fn as_mut(&mut self) -> &mut redis::aio::Connection {
+impl AsMut<redis_cluster_async::Connection> for RedisConnection {
+    fn as_mut(&mut self) -> &mut redis_cluster_async::Connection {
         &mut self.actual
     }
 }
 
-impl AsRef<redis::aio::Connection> for RedisConnection {
-    fn as_ref(&self) -> &redis::aio::Connection {
+impl AsRef<redis_cluster_async::Connection> for RedisConnection {
+    fn as_ref(&self) -> &redis_cluster_async::Connection {
         &self.actual
     }
 }
